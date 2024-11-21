@@ -5,7 +5,7 @@ Sketch de Arduino para la Raspberry Pi Pico W que captura imágenes y las transm
 ### Dependencias
 
 - Arduino IDE 2.3.3
-- Arduino-Pico https://github.com/earlephilhower/arduino-pico
+- Arduino-Pico 4.2.1 https://github.com/earlephilhower/arduino-pico
   
 
 ### Hardware

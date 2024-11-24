@@ -56,23 +56,17 @@ const Serial = {
         // read loop broke
         port = undefined;
     },
-    Read: async (len: number): Promise<DataView | undefined> => {
-        if (port == undefined) return;
-        try {
-            let result = await port.device.transferIn(port.endpoint_in, len);
-            if (result.data == undefined) return;
-            return result.data;
-        } catch (e) {
-            console.error(e);
-            return;
-        }
+    Read: async (len: number): Promise<DataView> => {
+        if (port == undefined) throw new Error("Not connected");
+        let result = await port.device.transferIn(port.endpoint_in, len);
+        if (result.data == undefined) throw new Error("Failed to read");
+        return result.data;
     },
     FindString: async (str: string, steps: number): Promise<boolean> => {
         let chars = Array.from(str).map((letter) => letter.charCodeAt(0));
         let pos = 0;
         for (let i = 0; i < steps + str.length; i++) {
             let byte = await Serial.Read(1);
-            if (byte == undefined || byte.byteLength == 0) return false;
             if (byte.getUint8(0) == chars[pos]) {
                 pos += 1;
                 if (pos == chars.length) {
@@ -87,22 +81,25 @@ const Serial = {
     Listen: async () => {
         while (1) {
             // read header
-            if (await Serial.FindString("start", 1600)) {
-                // read payload length
-                let len = await Serial.Read(4);
-                if (len == undefined) return;
-                let rem = len.getInt32(0, true);
-                while (rem > 0) {
-                    let data = await Serial.Read(rem);
-                    if (data == undefined) return;
-                    rem -= data.byteLength;
+            try {
+                if (await Serial.FindString("start", 1600)) {
+                    // read payload length
+                    let len = await Serial.Read(4);
+                    let rem = len.getInt32(0, true);
+                    while (rem > 0) {
+                        let data = await Serial.Read(rem);
+                        rem -= data.byteLength;
+                    }
+                    // read footer
+                    if (await Serial.FindString("end", 0)) {
+                        console.log("read ok");
+                    } else {
+                        console.log("error");
+                    }
                 }
-                // read footer
-                if ((await Serial.FindString("end", 0)) == false) {
-                    console.log("error");
-                } else {
-                    console.log("read ok");
-                }
+            } catch (e) {
+                console.log("disconnected");
+                break;
             }
         }
     },

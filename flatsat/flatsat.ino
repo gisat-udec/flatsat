@@ -1,17 +1,36 @@
 #include "pico/stdlib.h"
 extern "C" {
   #include "ov2640.h"
-} 
+}
+#include "tusb.h"
+#include <Adafruit_GFX.h>
+#include <Adafruit_ST7735.h>
+#include <SPI.h>
+#include <WiFi.h>
+#include <WiFiUdp.h>
+#include <JPEGENC.h>
 
-// Pines
+// * Pines*
+// - Camara OV2640 red board
 #define SDA 4
 #define SCL 5
 #define OV2640_RESET 2
 #define OV2640_VSYNC 3
-#define OV2640_DATA 6 // D0; deben estar en orden D0, D1, D2, D3, D4, D5, D6, DCLK, HREF
+// Los pines D0, D1, D2, D3, D4, D5, D6, DCLK, HREF deben estar en orden
+// En este caso desde GPIO 6 hasta GPIO 15
+#define OV2640_DATA 6 // D0
+// - Pantalla ST7735S
+#define TFT_CS    17
+#define TFT_DC    16
+#define TFT_MOSI  19
+#define TFT_SCLK  18
+#define TFT_RST   12
 
 // Configuración de la camara
-static uint8_t image_buf[320*240*2];
+JPEGENC jpg;
+JPEGENCODE jpe;
+static uint8_t jpeg_buf[20000];
+static uint8_t raw_buf[320*240*2];
 static struct ov2640_config config = {
     .sccb = i2c_default,
     .pin_sioc = SCL,
@@ -24,19 +43,60 @@ static struct ov2640_config config = {
     .pio = pio0,
     .pio_sm = 0,
     .dma_channel = 0,
-    .image_buf = image_buf,
-    .image_buf_size = sizeof(image_buf),
+    .image_buf = raw_buf,
+    .image_buf_size = sizeof(raw_buf),
     .pixformat = PIXFORMAT_RGB565,
 };
 
+// Configuración de la pantalla
+Adafruit_ST7735 tft = Adafruit_ST7735(TFT_CS, TFT_DC, TFT_MOSI, TFT_SCLK, TFT_RST);
+
+// Configuración Wifi
+#define SSID "station"
+#define PASSWORD "station123"
+IPAddress IP(10, 0, 0, 1);
+#define PORT 8888
+WiFiUDP udp;
+
+enum {
+  PACKET_JPEG = 0
+};
+
 void setup() {
-  Serial.begin(115200);
+  WiFi.begin(SSID, PASSWORD);
+  while (WiFi.status() != WL_CONNECTED) {
+    Serial.print('.');
+    delay(500);
+  }
+  Serial.print("Connected! IP address: ");
+  Serial.println(WiFi.localIP());
   ov2640_init(&config);
+  tft.initR(INITR_GREENTAB);
+  tft.fillScreen(ST77XX_CYAN);
 }
 
 void loop() {
-  Serial.println("capture frame");
+  // Capturar
   ov2640_capture_frame(&config);
+  jpg.open(jpeg_buf, sizeof(jpeg_buf));
+  jpg.encodeBegin(&jpe, 320, 240, JPEGE_PIXEL_RGB565, JPEGE_SUBSAMPLE_420, JPEGE_Q_LOW);
+  jpg.addFrame(&jpe, raw_buf, 320 * 2);
+
+  // Enviar
+  if (jpg.getLastError() == JPEGE_SUCCESS) {
+    int rem = jpg.close();
+    printf("Enviando jpeg bytes %d\n", rem);
+    for (uint8_t i = 0; rem > 0; i++) {
+      printf("%u ", i);
+      udp.beginPacket(IP, PORT);
+      udp.write(PACKET_JPEG);
+      udp.write(i);
+      udp.write(&jpeg_buf[i*1500], min(1500, rem));
+      udp.endPacket();
+      rem -= 1500;
+    }
+    printf("\n");
+  }
+
   digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
-  delay(500);
 }

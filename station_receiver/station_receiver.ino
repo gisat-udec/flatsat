@@ -8,7 +8,7 @@
 IPAddress IP(10, 0, 0, 1);
 #define PORT 8888
 WiFiUDP udp;
-char packetBuffer[UDP_TX_PACKET_MAX_SIZE + 1];
+static char udp_buf[UDP_TX_PACKET_MAX_SIZE + 1];
 
 // Configuración USB
 Adafruit_USBD_WebUSB usb_web;
@@ -31,15 +31,18 @@ void setup() {
 }
 
 void loop() {
-  int packetSize = udp.parsePacket();
-  if (packetSize) {
-    // read the packet into packetBufffer
-    int n = udp.read(packetBuffer, UDP_TX_PACKET_MAX_SIZE);
-    packetBuffer[n] = 0;
-    Serial.println("Contents:");
-    Serial.println(packetBuffer);
+  int len = udp.parsePacket();
+  if (len) {
+    int n = udp.read(udp_buf, UDP_TX_PACKET_MAX_SIZE);
+    udp_buf[n] = 0;
     if (usb_web.connected()) {
-      usb_web.write("HOLA", 4);
+      IPAddress remote = udp.remoteIP();
+      int32_t payload_len = sizeof(remote) + n;
+      usb_web.write("start", 5);
+      usb_web.write(reinterpret_cast<uint8_t *>(&payload_len), sizeof(payload_len));
+      usb_web.write(reinterpret_cast<uint8_t *>(&remote), sizeof(remote));
+      usb_web.write(udp_buf, n);
+      usb_web.write("end", 3);
       usb_web.flush();
     }
   }

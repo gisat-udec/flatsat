@@ -19,6 +19,7 @@
     "typescript": "^5.7.2"
   },
   "devDependencies": {
+    "@types/w3c-web-usb": "^1.0.10",
     "daisyui": "^4.12.14"
   }
 }

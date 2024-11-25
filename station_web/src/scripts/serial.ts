@@ -1,5 +1,3 @@
-import App from "./app.ts";
-
 interface Port {
     device: USBDevice;
     if_number: number;
@@ -58,9 +56,19 @@ const Serial = {
     },
     Read: async (len: number): Promise<DataView> => {
         if (port == undefined) throw new Error("Not connected");
-        let result = await port.device.transferIn(port.endpoint_in, len);
-        if (result.data == undefined) throw new Error("Failed to read");
-        return result.data;
+        let i = 0;
+        let buf = new ArrayBuffer(len);
+        let uint8_buf_view = new Uint8Array(buf);
+        while (i < len) {
+            let result = await port.device.transferIn(
+                port.endpoint_in,
+                len - i,
+            );
+            if (result.data == undefined) throw new Error("Failed to read");
+            uint8_buf_view.set(new Uint8Array(result.data.buffer), i);
+            i += result.data.byteLength;
+        }
+        return new DataView(buf);
     },
     FindString: async (str: string, steps: number): Promise<boolean> => {
         let chars = Array.from(str).map((letter) => letter.charCodeAt(0));
@@ -84,12 +92,9 @@ const Serial = {
             try {
                 if (await Serial.FindString("start", 1600)) {
                     // read payload length
-                    let len = await Serial.Read(4);
-                    let rem = len.getInt32(0, true);
-                    while (rem > 0) {
-                        let data = await Serial.Read(rem);
-                        rem -= data.byteLength;
-                    }
+                    let len = (await Serial.Read(4)).getInt32(0, true);
+                    // read payload
+                    let data = await Serial.Read(len);
                     // read footer
                     if (await Serial.FindString("end", 0)) {
                         console.log("read ok");
@@ -98,6 +103,7 @@ const Serial = {
                     }
                 }
             } catch (e) {
+                console.error(e);
                 console.log("disconnected");
                 break;
             }

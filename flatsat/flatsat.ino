@@ -20,11 +20,11 @@ extern "C" {
 // En este caso desde GPIO 6 hasta GPIO 15
 #define OV2640_DATA 6 // D0
 // - Pantalla ST7735S
-#define TFT_CS    17
 #define TFT_DC    16
-#define TFT_MOSI  19
+#define TFT_CS    17
 #define TFT_SCLK  18
-#define TFT_RST   12
+#define TFT_MOSI  19
+#define TFT_RST   20
 
 // Configuración de la camara
 uint32_t frame = 0;

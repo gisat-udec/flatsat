@@ -27,6 +27,8 @@ extern "C" {
 #define TFT_RST   12
 
 // Configuración de la camara
+uint32_t frame = 0;
+#define JPEG_CHUNK_SIZE 2000
 JPEGENC jpg;
 JPEGENCODE jpe;
 static uint8_t jpeg_buf[20000];
@@ -78,6 +80,7 @@ void setup() {
 void loop() {
   // Capturar
   ov2640_capture_frame(&config);
+  frame++;
   jpg.open(jpeg_buf, sizeof(jpeg_buf));
   jpg.encodeBegin(&jpe, 320, 240, JPEGE_PIXEL_RGB565, JPEGE_SUBSAMPLE_420, JPEGE_Q_LOW);
   jpg.addFrame(&jpe, raw_buf, 320 * 2);
@@ -86,14 +89,21 @@ void loop() {
   if (jpg.getLastError() == JPEGE_SUCCESS) {
     int rem = jpg.close();
     printf("Enviando jpeg bytes %d\n", rem);
-    for (uint8_t i = 0; rem > 0; i++) {
-      printf("%u ", i);
+    uint8_t total_chunks = ceil(rem / (float)JPEG_CHUNK_SIZE);
+    uint8_t chunk = 0;
+    while (rem > 0) {
       udp.beginPacket(IP, PORT);
       udp.write(PACKET_JPEG);
-      udp.write(i);
-      udp.write(&jpeg_buf[i*1500], min(1500, rem));
-      udp.endPacket();
-      rem -= 1500;
+      udp.write(reinterpret_cast<uint8_t*>(&frame), sizeof(frame));
+      udp.write(chunk);
+      udp.write(total_chunks);
+      int chunk_size = min(JPEG_CHUNK_SIZE, rem);
+      udp.write(&jpeg_buf[chunk*JPEG_CHUNK_SIZE], chunk_size);
+      if (udp.endPacket()) {
+        rem -= chunk_size;
+        chunk++;
+      }
+      
     }
     printf("\n");
   }

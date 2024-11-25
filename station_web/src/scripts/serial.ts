@@ -91,11 +91,11 @@ const Serial = {
         while (1) {
             // read header
             try {
-                if (await Serial.FindString("start", 1600)) {
+                if (await Serial.FindString("start", 2000)) {
                     // read payload length
                     let len = (await Serial.Read(4)).getInt32(0, true);
                     // read payload
-                    let data = await Serial.Read(len);
+                    let data = await Serial.Read(len - 4);
                     // read footer
                     if (await Serial.FindString("end", 0)) {
                         Serial.OnPacket(data);

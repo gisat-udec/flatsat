@@ -49,10 +49,11 @@ const Serial = {
             endpoint_in: endpoint_in,
             endpoint_out: endpoint_out,
         };
+        console.log("Connected");
         // read loop
         await Serial.Listen();
         // read loop broke
-        port = undefined;
+        Serial.Disconnect();
     },
     Read: async (len: number): Promise<DataView> => {
         if (port == undefined) throw new Error("Not connected");
@@ -97,14 +98,13 @@ const Serial = {
                     let data = await Serial.Read(len);
                     // read footer
                     if (await Serial.FindString("end", 0)) {
-                        console.log("read ok");
+                        Serial.OnPacket(data);
                     } else {
-                        console.log("error");
+                        console.error("Footer not found");
                     }
                 }
             } catch (e) {
                 console.error(e);
-                console.log("disconnected");
                 break;
             }
         }
@@ -113,19 +113,22 @@ const Serial = {
         if (port == undefined) {
             return;
         }
-        await port.device.controlTransferOut({
-            requestType: "class",
-            recipient: "interface",
-            request: 0x22,
-            value: 0x00,
-            index: port.if_number,
-        });
-        await port.device.close();
-        port = undefined;
+        try {
+            await port.device.controlTransferOut({
+                requestType: "class",
+                recipient: "interface",
+                request: 0x22,
+                value: 0x00,
+                index: port.if_number,
+            });
+            await port.device.close();
+        } finally {
+            port = undefined;
+            console.log("Disconnected");
+        }
     },
-    OnData: (data: DataView) => {
-        console.log(data);
-    },
+    // callbacks
+    OnPacket: (data: DataView) => {},
 };
 
 export default Serial;

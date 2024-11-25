@@ -1,9 +1,5 @@
 import Serial from "./serial.ts";
 
-const App = {
-    OnPacket: () => {
-        console.log("meo packer");
-    },
+Serial.OnPacket = () => {
+    console.log("paquete");
 };
-
-export default App;

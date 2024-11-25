@@ -20,10 +20,10 @@ extern "C" {
 // En este caso desde GPIO 6 hasta GPIO 15
 #define OV2640_DATA 6  // D0
 // - Pantalla ST7735S
-#define TFT_CS 17
 #define TFT_DC 16
-#define TFT_MOSI 19
+#define TFT_CS 17
 #define TFT_SCLK 18
+#define TFT_MOSI 19
 #define TFT_RST 20
 
 // Configuración de la camara
@@ -83,11 +83,11 @@ void setup() {
 
   SPI.setMISO(TFT_DC);
   SPI.setCS(TFT_CS);
-  SPI.setSCK(TFT_SCLK);
+  SPI.setSCK(TFT_SCLK); 
   SPI.setMOSI(TFT_MOSI);
   tft = new Adafruit_ST7735(TFT_CS, TFT_DC, TFT_RST);
   tft->initR(INITR_GREENTAB);
-  tft->setRotation(3);
+  tft->setRotation(1);
   tft->fillScreen(ST77XX_CYAN);
 }
 

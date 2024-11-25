@@ -24,6 +24,9 @@ struct ov2640_config {
     uint8_t *image_buf;
     size_t image_buf_size;
     pixformat_t pixformat;
+
+    uint32_t width;
+    uint32_t height;
 };
 
 void ov2640_init(struct ov2640_config *config);

@@ -50,7 +50,7 @@ static void ov2640_regs_write(const OV2640_command *cmd) {
 void ov2640_set_params(struct ov2640_config *config) {
     ov2640_regs_write(ov2640_init_regs);
     ov2640_regs_write(ov2640_size_change_preamble_regs);
-    const struct ov2640_win_size *win = ov2640_select_win(320, 240);
+    const struct ov2640_win_size *win = ov2640_select_win(config->width, config->height);
     ov2640_regs_write(win->regs);
     ov2640_regs_write(ov2640_format_change_preamble_regs);
 

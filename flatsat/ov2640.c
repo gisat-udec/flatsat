@@ -72,7 +72,7 @@ void ov2640_set_params(struct ov2640_config *config) {
     }
 }
 
-static bool ov2640_probe(struct ov2640_config *config)
+static uint16_t ov2640_probe(struct ov2640_config *config)
 {
     (void *)config;
     uint16_t reg = 0;
@@ -87,10 +87,10 @@ static bool ov2640_probe(struct ov2640_config *config)
     reg <<= 8;
     reg |= ov2640_reg_read(REG_VER);
     printf("Read vendor PID: 0x%0x \n", reg);
-    return true;
+    return reg;
 }
 
-void ov2640_init(struct ov2640_config *config) {
+uint16_t ov2640_init(struct ov2640_config *config) {
     vconfig = config;
     // SCCB I2C @ 100 kHz
     i2c_init(config->sccb, 100 * 1000);
@@ -108,11 +108,12 @@ void ov2640_init(struct ov2640_config *config) {
     sleep_ms(100);
     gpio_put(config->pin_resetb, 1);
     sleep_ms(100);
-    ov2640_probe(config);
+    uint16_t reg = ov2640_probe(config);
     ov2640_set_params(config);
 
     uint offset = pio_add_program(config->pio, &image_program);
     image_program_init(config->pio, config->pio_sm, offset, config->pin_y2_pio_base);
+    return reg;
 }
 
 void ov2640_capture_frame(struct ov2640_config *config) {

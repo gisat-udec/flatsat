@@ -29,7 +29,7 @@ struct ov2640_config {
     uint32_t height;
 };
 
-void ov2640_init(struct ov2640_config *config);
+uint16_t ov2640_init(struct ov2640_config *config);
 
 void ov2640_capture_frame(struct ov2640_config *config);
 

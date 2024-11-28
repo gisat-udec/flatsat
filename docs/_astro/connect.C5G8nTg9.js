@@ -1,0 +1,1 @@
+import{d as e,g as r,a,r as n,t as o}from"./web.DixYknTA.js";import{S as s}from"./serial.Cg_ZbxD2.js";import"./solid.C4r5Y9fm.js";var c=o('<button class="btn btn-primary">Conectar');function p(){return(()=>{var t=r(c);return a(t,"click",s.Connect),n(),t})()}e(["click"]);export{p as default};
